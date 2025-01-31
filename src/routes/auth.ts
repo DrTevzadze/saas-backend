@@ -64,4 +64,70 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Request password reset
+
+router.post("/request-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(401).json({ message: "User not found!" });
+      return;
+    }
+
+    // Generate Token
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "15m",
+      }
+    );
+
+    // Mock reset link
+    console.log(
+      `Password reset link: http://localhost:3000/auth/reset-password?token=${token}`
+    );
+
+    res.json({ message: "Token generated", token });
+  } catch (err) {
+    res.status(500).json({ message: "Something went wrong:", err });
+  }
+});
+
+// Reset password
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    // Verify Token
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as jwt.JwtPayload & { userId: string };
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+    });
+
+    if (!user) {
+      res.status(401).json({ message: "User not found!" });
+      return;
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update Password
+    const updatedUser = await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { password: hashedPassword },
+    });
+
+    res.json({ message: "Password updated", updatedUser });
+  } catch (err) {
+    res.status(500).json({ message: "Something went wrong:", err });
+  }
+});
+
 export default router;
