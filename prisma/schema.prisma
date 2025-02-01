@@ -33,6 +33,9 @@ model Company {
   name String @unique
   email String @unique
   password String
+  country String
+  industry String
+  isActivated Boolean @default(false)
   plan SubscriptionPlan @default(FREE)
   employees User[]
   createdAt DateTime @default(now())

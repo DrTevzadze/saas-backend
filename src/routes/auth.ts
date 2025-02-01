@@ -1,14 +1,16 @@
 import { Router } from "express";
-import signupRoute from "./auth/signup";
-import loginRoute from "./auth/login";
-import requestPasswordRoute from "./auth/request-password";
-import resetPasswordRoute from "./auth/reset-password";
+import {
+  signup,
+  login,
+  requestPasswordReset,
+  resetPassword,
+} from "../controllers/authController";
 
 const router = Router();
 
-router.use("/signup", signupRoute);
-router.use("/login", loginRoute);
-router.use("/request-password", requestPasswordRoute);
-router.use("/reset-password", resetPasswordRoute);
+router.post("/signup", signup);
+router.post("/login", login);
+router.post("/request-password", requestPasswordReset);
+router.post("/reset-password", resetPassword);
 
 export default router;
