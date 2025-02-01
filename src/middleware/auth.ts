@@ -7,14 +7,18 @@ dotenv.config();
 interface UserPayload {
   userId: string;
   email: string;
+  role?: "ADMIN" | "USER";
 }
 
-// Extend Request type to include `user`
 export interface AuthRequest extends Request {
   user?: UserPayload;
 }
 
-export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authenticateJWT = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
   const token = req.header("Authorization")?.split(" ")[1];
 
   if (!token) {
@@ -23,9 +27,12 @@ export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunct
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as UserPayload;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as UserPayload;
     req.user = decoded;
-    next(); // ✅ Move to the next middleware/route
+    next();
   } catch (error) {
     res.status(403).json({ message: "Invalid token." });
   }

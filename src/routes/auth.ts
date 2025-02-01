@@ -1,8 +1,8 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
+import { PrismaClient, Role } from "@prisma/client";
 
 dotenv.config();
 const router = Router();
@@ -11,7 +11,12 @@ const prisma = new PrismaClient();
 // Signup
 router.post("/signup", async (req, res): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
+
+    if (role && !Object.values(Role).includes(role as Role)) {
+      res.status(400).json({ message: "Invalid role!" });
+      return;
+    }
 
     const existUser = await prisma.user.findUnique({ where: { email } });
     if (existUser) {
@@ -24,7 +29,11 @@ router.post("/signup", async (req, res): Promise<void> => {
 
     // Create User
     const user = await prisma.user.create({
-      data: { email, password: hashedPassword },
+      data: {
+        email,
+        password: hashedPassword,
+        role: (role as Role) || Role.USER,
+      },
     });
 
     res.status(201).json({ message: "User registered:", user });
@@ -52,7 +61,7 @@ router.post("/login", async (req, res) => {
 
     // Generate Token
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
       {
         expiresIn: "1h",

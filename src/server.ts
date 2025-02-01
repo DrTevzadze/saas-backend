@@ -16,5 +16,5 @@ app.get("/", (req, res) => {
   res.send("Server is running!");
 });
 
-const PORT = 3000;
+const PORT = 4000;
 app.listen(PORT, () => console.log(`Sever is running on port ${PORT}`));
