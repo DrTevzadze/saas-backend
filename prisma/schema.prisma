@@ -18,10 +18,28 @@ model User {
   email     String  @unique
   password  String
   role      Role    @default(USER)
+  companyId String?
+  company Company? @relation(fields: [companyId], references: [id])
   createdAt DateTime @default(now())
 }
 
 enum Role {
   ADMIN
   USER
+}
+
+model Company {
+  id String @id @default(uuid())
+  name String @unique
+  email String @unique
+  password String
+  plan SubscriptionPlan @default(FREE)
+  employees User[]
+  createdAt DateTime @default(now())
+}
+
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  PREMIUM
 }
