@@ -179,3 +179,82 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
     return;
   }
 };
+
+// Verify Invite Token
+export const verifyInviteToken = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      res.status(400).json({ message: "Invalid token" });
+      return;
+    }
+
+    const decoded = jwt.verify(
+      token as string,
+      process.env.JWT_SECRET as string
+    ) as { email: string; companyId: string };
+
+    const invitedUser = await prisma.user.findUnique({
+      where: {
+        email: decoded.email,
+        inviteToken: token as string,
+      },
+    });
+
+    if (!invitedUser) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({ message: "Token verified successfully!" });
+  } catch (err) {
+    console.log("Verify Invite Token Error:", err);
+    res.status(500).json({ message: "Something went wrong:", err });
+    return;
+  }
+};
+
+// Accept invite
+export const acceptInvite = async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      res.status(400).json({ message: "Token and Password are required!" });
+      return;
+    }
+
+    const decoded = jwt.verify(
+      token as string,
+      process.env.JWT_SECRET as string
+    ) as { email: string; companyId: string };
+
+    const invitedUser = await prisma.user.findUnique({
+      where: {
+        email: decoded.email,
+        companyId: decoded.companyId,
+      },
+    });
+
+    if (!invitedUser) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.user.update({
+      where: { email: decoded.email },
+      data: {
+        password: hashedPassword,
+        inviteToken: null,
+        isActivated: true,
+      },
+    });
+
+    res.status(200).json({ message: "User created successfully!" });
+  } catch (err) {
+    console.log("Accept Invite Error:", err);
+    res.status(500).json({ message: "Something went wrong:", err });
+    return;
+  }
+};
