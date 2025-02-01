@@ -8,6 +8,7 @@ import {
   updatePassword,
 } from "../services/authService";
 import bcrypt from "bcrypt";
+import { AuthRequest } from "../middleware/auth";
 
 // Signup
 export const signup = async (req: Request, res: Response): Promise<void> => {
@@ -38,7 +39,11 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const user = await findUserByEmail(email);
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (
+      !user ||
+      !user.password ||
+      !(await bcrypt.compare(password, user.password))
+    ) {
       res.status(401).json({ message: "Invalid credentials!" });
       return;
     }
@@ -72,7 +77,10 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
 };
 
 // Reset Password
-export const resetPassword = async (req: Request, res: Response) => {
+export const resetPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { token, newPassword } = req.body;
     const decoded = verifyJWT(token);
@@ -83,8 +91,10 @@ export const resetPassword = async (req: Request, res: Response) => {
       return;
     }
 
-    if (await bcrypt.compare(newPassword, user.password)) {
-      res.status(400).json({ message: "New password can't be the same!" });
+    if (!user.password || (await bcrypt.compare(newPassword, user.password))) {
+      res
+        .status(400)
+        .json({ message: "New password can't be the same as the old one!" });
       return;
     }
 

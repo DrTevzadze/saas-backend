@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { AuthRequest } from "../middleware/auth";
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -103,6 +104,78 @@ export const activateCompany = async (req: Request, res: Response) => {
   } catch (err) {
     console.error("Activation error:", err);
     res.status(500).json({ message: "Something went wrong!", error: err });
+    return;
+  }
+};
+
+// Admin Invites Employee
+export const inviteEmployee = async (req: AuthRequest, res: Response) => {
+  try {
+    const { email } = req.body;
+    const adminId = req.user?.userId;
+
+    if (!email) {
+      res.status(400).json({ message: "Email is required!" });
+      return;
+    }
+
+    if (!adminId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const admin = await prisma.user.findUnique({
+      where: {
+        id: adminId,
+        role: "ADMIN",
+      },
+      include: { company: true },
+    });
+
+    if (!admin || !admin.company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    if (admin.role !== "ADMIN") {
+      res.status(401).json({ message: "Only admins can invite" });
+      return;
+    }
+
+    // Check if employee already exists
+    const existingEmployee = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (existingEmployee) {
+      res.status(400).json({ message: "Employee already exists" });
+      return;
+    }
+
+    // Invite token
+    const inviteToken = jwt.sign(
+      { email, companyId: admin.companyId },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    // Store invite token
+    await prisma.user.create({
+      data: {
+        email,
+        inviteToken,
+        companyId: admin.company.id,
+      },
+    });
+
+    res.json({ message: "Employee invited successfully!" });
+  } catch (err) {
+    console.log("Invite Employee Error:", err);
+    res.status(500).json({ message: "Something went wrong:", err });
     return;
   }
 };
