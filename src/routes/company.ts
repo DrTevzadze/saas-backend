@@ -11,17 +11,20 @@ import {
   updateUserProfile,
 } from "../controllers/companyController";
 import { authenticateJWT } from "../middleware/auth";
+import { isAdmin } from "../middleware/role";
 
 const router = Router();
 
-router.post("/signup", companySignup);
 router.get("/activate", activateCompany);
-router.post("/invite", authenticateJWT, inviteEmployee);
-router.get("/invite/verify", verifyInviteToken);
-router.post("/join", acceptInvite);
-router.post("/upgrade", authenticateJWT, upgradeSubscription);
-router.delete("/delete/:userId", authenticateJWT, removeEmployee);
 router.get("/details", authenticateJWT, getCompanyDetails);
+router.get("/invite/verify", verifyInviteToken);
+
+router.post("/signup", companySignup);
+router.post("/invite", authenticateJWT, isAdmin, inviteEmployee);
+router.post("/join", acceptInvite);
+router.post("/upgrade", authenticateJWT, isAdmin, upgradeSubscription);
+
+router.delete("/delete/:userId", authenticateJWT, isAdmin, removeEmployee);
 router.put("/user/update", authenticateJWT, updateUserProfile);
 
 export default router;

@@ -1,6 +1,6 @@
 import { Response, Router } from "express";
 import { authenticateJWT, AuthRequest } from "../middleware/auth";
-import { isAdmin } from "../middleware/authenticate";
+import { isAdmin } from "../middleware/role";
 
 const router = Router();
 
