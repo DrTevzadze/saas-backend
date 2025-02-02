@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
 
 // Filter file extensions
 const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
-  const allowedFileTypes = [".csv", ".xls", "xlsx"];
+  const allowedFileTypes = [".csv", ".xls", ".xlsx"];
   const extension = path.extname(file.originalname).toLowerCase();
 
   if (!allowedFileTypes.includes(extension)) {
