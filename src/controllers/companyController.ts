@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { AuthRequest } from "../middleware/auth";
+import { isAdmin } from "../middleware/authenticate";
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -200,6 +201,68 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Remove Employee from the company (admin only)
+export const removeEmployee = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.user?.userId;
+
+    console.log("User Id", userId);
+
+    if (!adminId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const admin = await prisma.user.findUnique({
+      where: {
+        id: adminId,
+        role: "ADMIN",
+      },
+      include: {
+        company: {
+          include: { employees: true },
+        },
+      },
+    });
+
+    if (!admin) {
+      res
+        .status(404)
+        .json({ message: "Unauthorized! Only admin can remove employees!" });
+      return;
+    }
+
+    if (!admin?.company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const employeeToRemove = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!employeeToRemove) {
+      res.status(404).json({ message: "Employee not found" });
+      return;
+    }
+
+    await prisma.user.delete({
+      where: {
+        id: userId,
+      },
+    });
+
+    res.json({ message: `Employee with id: ${userId} removed successfully!` });
+  } catch (err) {
+    console.log("Remove Employee Error:", err);
+    res.status(500).json({ message: "Something went wrong:", err });
+    return;
+  }
+};
+
 // Verify Invite Token
 export const verifyInviteToken = async (req: Request, res: Response) => {
   try {
@@ -316,12 +379,10 @@ export const upgradeSubscription = async (req: AuthRequest, res: Response) => {
     }
 
     if (!["FREE", "BASIC", "PREMIUM"].includes(newPlan)) {
-      res
-        .status(400)
-        .json({
-          message:
-            "Invalid subscription plan. The plan has to be FREE, BASIC or PREMIUM (case sensitive)",
-        });
+      res.status(400).json({
+        message:
+          "Invalid subscription plan. The plan has to be FREE, BASIC or PREMIUM (case sensitive)",
+      });
       return;
     }
 
@@ -355,6 +416,88 @@ export const upgradeSubscription = async (req: AuthRequest, res: Response) => {
     });
   } catch (err) {
     console.error("Upgrade Subscription Error:", err);
+    res.status(500).json({ message: "Something went wrong:", err });
+    return;
+  }
+};
+
+// View Company Details
+export const getCompanyDetails = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        company: {
+          include: { employees: true },
+        },
+      },
+    });
+
+    if (!user?.company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    res.json({
+      companyName: user.company.name,
+      plan: user.company.plan,
+      employeeCount: await prisma.user.count({
+        where: {
+          companyId: user.companyId,
+        },
+      }),
+    });
+  } catch (err) {
+    console.error("Get Company Details Error:", err);
+    res.status(500).json({ message: "Something went wrong:", err });
+    return;
+  }
+};
+
+// Update userProfile
+export const updateUserProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { email, password } = req.body;
+
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const updateData: any = {};
+
+    if (email) updateData.email = email;
+    if (password) updateData.password = await bcrypt.hash(password, 10);
+
+    const updateUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    res.json({ message: "User profile updated successfully!", updateUser });
+  } catch (err) {
+    console.error("Update User Profile Error:", err);
     res.status(500).json({ message: "Something went wrong:", err });
     return;
   }
