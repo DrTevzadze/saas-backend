@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { PrismaClient, Visibility } from "@prisma/client";
 import { AuthRequest } from "../middleware/auth";
+import { fileUploadLimits } from "../config/subscription";
 
 const prisma = new PrismaClient();
 
@@ -19,9 +20,40 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { company: true },
+    });
+
+    if (!user?.company) {
+      res.status(404).json({ message: "Company not found!" });
+      return;
+    }
+
+    const { plan } = user.company;
+    const maxFiles = fileUploadLimits[plan];
+
+    const currentMonth = new Date();
+    currentMonth.setDate(1);
+    currentMonth.setHours(0, 0, 0, 0);
+
+    const uploadedFilesCount = await prisma.file.count({
+      where: {
+        uploadedById: userId,
+        createdAt: { gte: currentMonth },
+      },
+    });
+
+    if (uploadedFilesCount >= maxFiles) {
+      res.status(403).json({
+        message: `Uploaded limit reached for ${plan} plan! (${maxFiles} files per month)`,
+      });
+      return;
+    }
+
     const file = await prisma.file.create({
       data: {
-        filename: req.file.fieldname,
+        filename: req.file.originalname,
         filepath: req.file.path,
         uploadedById: userId,
         visibility:
