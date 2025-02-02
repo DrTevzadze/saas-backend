@@ -129,7 +129,11 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
         id: adminId,
         role: "ADMIN",
       },
-      include: { company: true },
+      include: {
+        company: {
+          include: { employees: true },
+        },
+      },
     });
 
     if (!admin || !admin.company) {
@@ -142,12 +146,28 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const employeeLimits = {
+      FREE: 3,
+      BASIC: 10,
+      PREMIUM: Infinity,
+    };
+
     // Check if employee already exists
     const existingEmployee = await prisma.user.findUnique({
       where: {
         email,
       },
     });
+
+    const currentEmployeeCount = admin.company.employees.length;
+    const maxEmployees = employeeLimits[admin.company.plan];
+
+    if (currentEmployeeCount >= maxEmployees) {
+      res.status(400).json({
+        message: `You have reached the maximum number of employees for your plan (${maxEmployees})`,
+      });
+      return;
+    }
 
     if (existingEmployee) {
       res.status(400).json({ message: "Employee already exists" });
@@ -254,6 +274,87 @@ export const acceptInvite = async (req: Request, res: Response) => {
     res.status(200).json({ message: "User created successfully!" });
   } catch (err) {
     console.log("Accept Invite Error:", err);
+    res.status(500).json({ message: "Something went wrong:", err });
+    return;
+  }
+};
+
+// Upgrade Subscription Plan
+export const upgradeSubscription = async (req: AuthRequest, res: Response) => {
+  try {
+    const { newPlan } = req.body;
+    const adminId = req.user?.userId;
+
+    if (!adminId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const admin = await prisma.user.findUnique({
+      where: {
+        id: adminId,
+        role: "ADMIN",
+      },
+      include: {
+        company: {
+          include: { employees: true },
+        },
+      },
+    });
+
+    if (!admin) {
+      res.status(404).json({
+        message:
+          "Only admin is authorized to upgrade company's subscription plan.",
+      });
+      return;
+    }
+
+    if (!admin?.company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    if (!["FREE", "BASIC", "PREMIUM"].includes(newPlan)) {
+      res
+        .status(400)
+        .json({
+          message:
+            "Invalid subscription plan. The plan has to be FREE, BASIC or PREMIUM (case sensitive)",
+        });
+      return;
+    }
+
+    if (newPlan === admin.company.plan) {
+      res.status(400).json({ message: "You are already on this plan" });
+      return;
+    }
+
+    // Prevent from downgrading if employee count exceeds the limit
+    const employeeCount = admin.company.employees.length;
+
+    if (
+      (newPlan === "FREE" && employeeCount > 3) ||
+      (newPlan === "BASIC" && employeeCount > 10)
+    ) {
+      res.status(400).json({
+        message:
+          // "You need to remove employees before downgrading to the free plan",
+          `Your current subscription plan is ${admin.company.plan} .You need to remove employees before downgrading to the ${newPlan} plan`,
+      });
+      return;
+    }
+
+    await prisma.company.update({
+      where: { id: admin.company.id },
+      data: { plan: newPlan },
+    });
+
+    res.json({
+      message: `Subscription plan succesfully upgraded to ${newPlan}!`,
+    });
+  } catch (err) {
+    console.error("Upgrade Subscription Error:", err);
     res.status(500).json({ message: "Something went wrong:", err });
     return;
   }

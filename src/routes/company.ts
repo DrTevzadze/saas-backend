@@ -5,6 +5,7 @@ import {
   inviteEmployee,
   acceptInvite,
   verifyInviteToken,
+  upgradeSubscription,
 } from "../controllers/companyController";
 import { authenticateJWT } from "../middleware/auth";
 
@@ -15,5 +16,6 @@ router.get("/activate", activateCompany);
 router.post("/invite", authenticateJWT, inviteEmployee);
 router.get("/invite/verify", verifyInviteToken);
 router.post("/join", acceptInvite);
+router.post("/upgrade", authenticateJWT, upgradeSubscription);
 
 export default router;
