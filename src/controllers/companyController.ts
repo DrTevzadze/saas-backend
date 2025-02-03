@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { AuthRequest } from "../middleware/auth";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import { AuthRequest } from "../middleware/auth";
-import { isAdmin } from "../middleware/authenticate";
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -128,7 +127,6 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
     const admin = await prisma.user.findUnique({
       where: {
         id: adminId,
-        role: "ADMIN",
       },
       include: {
         company: {
@@ -139,11 +137,6 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
 
     if (!admin || !admin.company) {
       res.status(404).json({ message: "Company not found" });
-      return;
-    }
-
-    if (admin.role !== "ADMIN") {
-      res.status(401).json({ message: "Only admins can invite" });
       return;
     }
 
@@ -217,7 +210,6 @@ export const removeEmployee = async (req: AuthRequest, res: Response) => {
     const admin = await prisma.user.findUnique({
       where: {
         id: adminId,
-        role: "ADMIN",
       },
       include: {
         company: {
@@ -225,13 +217,6 @@ export const removeEmployee = async (req: AuthRequest, res: Response) => {
         },
       },
     });
-
-    if (!admin) {
-      res
-        .status(404)
-        .json({ message: "Unauthorized! Only admin can remove employees!" });
-      return;
-    }
 
     if (!admin?.company) {
       res.status(404).json({ message: "Company not found" });
@@ -356,7 +341,6 @@ export const upgradeSubscription = async (req: AuthRequest, res: Response) => {
     const admin = await prisma.user.findUnique({
       where: {
         id: adminId,
-        role: "ADMIN",
       },
       include: {
         company: {
@@ -364,14 +348,6 @@ export const upgradeSubscription = async (req: AuthRequest, res: Response) => {
         },
       },
     });
-
-    if (!admin) {
-      res.status(404).json({
-        message:
-          "Only admin is authorized to upgrade company's subscription plan.",
-      });
-      return;
-    }
 
     if (!admin?.company) {
       res.status(404).json({ message: "Company not found" });
@@ -399,9 +375,7 @@ export const upgradeSubscription = async (req: AuthRequest, res: Response) => {
       (newPlan === "BASIC" && employeeCount > 10)
     ) {
       res.status(400).json({
-        message:
-          // "You need to remove employees before downgrading to the free plan",
-          `Your current subscription plan is ${admin.company.plan} .You need to remove employees before downgrading to the ${newPlan} plan`,
+        message: `Your current subscription plan is ${admin.company.plan} .You need to remove employees before downgrading to the ${newPlan} plan`,
       });
       return;
     }
@@ -424,42 +398,24 @@ export const upgradeSubscription = async (req: AuthRequest, res: Response) => {
 // View Company Details
 export const getCompanyDetails = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.userId;
-
-    if (!userId) {
-      res.status(401).json({ message: "Unauthorized" });
-      return;
-    }
-
     const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      include: {
-        company: {
-          include: { employees: true },
-        },
-      },
+      where: { id: req.user?.userId },
+      include: { company: true },
     });
 
     if (!user?.company) {
-      res.status(404).json({ message: "Company not found" });
+      res.status(404).json({ message: "Company not found!" });
       return;
     }
 
     res.json({
       companyName: user.company.name,
       plan: user.company.plan,
-      employeeCount: await prisma.user.count({
-        where: {
-          companyId: user.companyId,
-        },
-      }),
+      role: user.role,
     });
   } catch (err) {
-    console.error("Get Company Details Error:", err);
-    res.status(500).json({ message: "Something went wrong:", err });
-    return;
+    console.log("Get Company Details Error:", err);
+    res.status(500).json({ message: "Something went wrong!", err });
   }
 };
 

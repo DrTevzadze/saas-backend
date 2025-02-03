@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth";
 import protectedRoutes from "./routes/protected";
 import subscriptionRoutes from "./routes/subscription";
 import companyRoutes from "./routes/company";
+import filesRoutes from "./routes/files";
 
 dotenv.config();
 const app = express();
@@ -16,6 +17,7 @@ app.use("/auth", authRoutes);
 app.use("/protected", protectedRoutes);
 app.use("/subscription", subscriptionRoutes);
 app.use("/company", companyRoutes);
+app.use("/files", filesRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running!");
