@@ -14,16 +14,17 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
+  id          String       @id @default(uuid())
+  email       String       @unique
   password    String?
-  role        Role     @default(USER)
+  role        Role         @default(USER)
   companyId   String?
-  company     Company? @relation(fields: [companyId], references: [id])
-  inviteToken String?  @unique
-  isActivated Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  company     Company?     @relation(fields: [companyId], references: [id])
+  inviteToken String?      @unique
+  isActivated Boolean      @default(false)
+  createdAt   DateTime     @default(now())
   File        File[]
+  FileAccess  FileAccess[]
 }
 
 enum Role {
@@ -51,16 +52,25 @@ enum SubscriptionPlan {
 }
 
 model File {
-  id           String     @id @default(uuid())
+  id           String       @id @default(uuid())
   filename     String
   filepath     String
-  uploadedBy   User       @relation(fields: [uploadedById], references: [id])
+  uploadedBy   User         @relation(fields: [uploadedById], references: [id])
   uploadedById String
-  visibility   Visibility @default(PRIVATE)
-  createdAt    DateTime   @default(now())
+  visibility   Visibility   @default(PRIVATE)
+  allowUsers   FileAccess[]
+  createdAt    DateTime     @default(now())
 }
 
 enum Visibility {
   PRIVATE
   PUBLIC
+}
+
+model FileAccess {
+  id     String @id @default(uuid())
+  fileId String
+  userId String
+  file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
