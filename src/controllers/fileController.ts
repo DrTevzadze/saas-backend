@@ -118,9 +118,6 @@ export const getFile = async (req: AuthRequest, res: Response) => {
 
 export const getAllFiles = async (req: AuthRequest, res: Response) => {
   try {
-    console.log("User Role:", req.user?.role); // ✅ Debug: Check user role
-    console.log("Fetching files...");
-
     const files = await prisma.file.findMany({
       include: {
         uploadedBy: {
@@ -128,8 +125,6 @@ export const getAllFiles = async (req: AuthRequest, res: Response) => {
         },
       },
     });
-
-    console.log("Files Found:", files.length);
 
     res
       .status(200)
