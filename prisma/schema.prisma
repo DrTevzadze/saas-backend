@@ -43,6 +43,7 @@ model Company {
   plan        SubscriptionPlan @default(FREE)
   employees   User[]
   createdAt   DateTime         @default(now())
+  Invoice     Invoice[]
 }
 
 enum SubscriptionPlan {
@@ -73,4 +74,18 @@ model FileAccess {
   userId String
   file   File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id         String   @id @default(uuid())
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId  String
+  month      Int
+  year       Int
+  totalFiles Int      @default(0)
+  baseCost   Float
+  extraFiles Int      @default(0)
+  extraCost  Float    @default(0)
+  totalCost  Float
+  createdAt  DateTime @default(now())
 }
