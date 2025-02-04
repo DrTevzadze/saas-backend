@@ -4,6 +4,7 @@ import { AuthRequest } from "../middleware/auth";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { subscriptionConfig } from "../config/subscription";
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -140,12 +141,6 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const employeeLimits = {
-      FREE: 3,
-      BASIC: 10,
-      PREMIUM: Infinity,
-    };
-
     // Check if employee already exists
     const existingEmployee = await prisma.user.findUnique({
       where: {
@@ -153,18 +148,19 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    const plan = admin.company.plan;
     const currentEmployeeCount = admin.company.employees.length;
-    const maxEmployees = employeeLimits[admin.company.plan];
+    const maxEmployees = subscriptionConfig[plan].employeeLimits;
+
+    if (existingEmployee) {
+      res.status(400).json({ message: "Employee already exists" });
+      return;
+    }
 
     if (currentEmployeeCount >= maxEmployees) {
       res.status(400).json({
         message: `You have reached the maximum number of employees for your plan (${maxEmployees})`,
       });
-      return;
-    }
-
-    if (existingEmployee) {
-      res.status(400).json({ message: "Employee already exists" });
       return;
     }
 
