@@ -1,7 +1,8 @@
 import { Response } from "express";
 import { PrismaClient, Visibility } from "@prisma/client";
 import { AuthRequest } from "../middleware/auth";
-import { fileUploadLimits } from "../config/subscription";
+import { subscriptionConfig } from "../config/subscription";
+import { updateInvoice } from "../services/invoiceService";
 
 const prisma = new PrismaClient();
 
@@ -31,7 +32,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
     }
 
     const { plan } = user.company;
-    const maxFiles = fileUploadLimits[plan];
+    const { fileUploadLimit } = subscriptionConfig[plan];
 
     const currentMonth = new Date();
     currentMonth.setDate(1);
@@ -44,12 +45,15 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    if (uploadedFilesCount >= maxFiles) {
+    if (uploadedFilesCount >= fileUploadLimit) {
       res.status(403).json({
-        message: `Uploaded limit reached for ${plan} plan! (${maxFiles} files per month)`,
+        message: `Uploaded limit reached for ${plan} plan! (${fileUploadLimit} files per month)`,
       });
       return;
     }
+
+    const { id: companyId } = user.company;
+    await updateInvoice(companyId, userId);
 
     const file = await prisma.file.create({
       data: {
@@ -86,7 +90,9 @@ export const getFile = async (req: AuthRequest, res: Response) => {
     });
 
     if (!file) {
-      res.status(404).json({ message: "You're trying to get the file. File not found!" });
+      res
+        .status(404)
+        .json({ message: "You're trying to get the file. File not found!" });
       return;
     }
 
@@ -112,16 +118,15 @@ export const getFile = async (req: AuthRequest, res: Response) => {
 
 export const getAllFiles = async (req: AuthRequest, res: Response) => {
   try {
-
     console.log("User Role:", req.user?.role); // ✅ Debug: Check user role
     console.log("Fetching files...");
 
     const files = await prisma.file.findMany({
       include: {
         uploadedBy: {
-          select: { email: true}
-        }
-      }
+          select: { email: true },
+        },
+      },
     });
 
     console.log("Files Found:", files.length);
@@ -144,7 +149,9 @@ export const updateFileVisibility = async (req: AuthRequest, res: Response) => {
 
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     if (!file) {
-      res.status(404).json({ message: "You're trying to update the file. File not found!" });
+      res
+        .status(404)
+        .json({ message: "You're trying to update the file. File not found!" });
       return;
     }
 
@@ -187,7 +194,9 @@ export const deleteFile = async (req: AuthRequest, res: Response) => {
     const file = await prisma.file.findUnique({ where: { id: fileId } });
 
     if (!file) {
-      res.status(404).json({ message: "You're trying to delete file. File not found!" });
+      res
+        .status(404)
+        .json({ message: "You're trying to delete file. File not found!" });
       return;
     }
 
