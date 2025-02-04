@@ -52,8 +52,7 @@ export const uploadFile = async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const { id: companyId } = user.company;
-    await updateInvoice(companyId, userId);
+    await updateInvoice(userId);
 
     const file = await prisma.file.create({
       data: {

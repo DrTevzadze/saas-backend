@@ -13,16 +13,28 @@ export const findUserByEmail = async (email: string) => {
 export const createUser = async (
   email: string,
   password: string,
-  role: Role
+  role: Role,
+  companyId?: string
 ) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   return prisma.user.create({
-    data: { email, password: hashedPassword, role },
+    data: { email, password: hashedPassword, role, companyId },
   });
 };
 
-export const generateJWT = (userId: string, email: string, role: Role) => {
-  return jwt.sign({ userId, email, role }, process.env.JWT_SECRET as string, {
+export const generateJWT = (
+  userId: string,
+  email: string,
+  role: Role,
+  companyId?: string | null
+) => {
+  const payload: any = { userId, email, role };
+
+  if (companyId) {
+    payload.companyId = companyId;
+  }
+
+  return jwt.sign(payload, process.env.JWT_SECRET as string, {
     expiresIn: "1h",
   });
 };

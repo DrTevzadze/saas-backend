@@ -7,18 +7,18 @@ export const subscriptionConfig = {
     employeeLimits: 1,
     fileUploadLimit: 10,
     baseCost: 0,
-    extraFilesCost: 0,
+    extraSubscriptionCost: 0,
   },
   BASIC: {
     employeeLimits: 10,
     fileUploadLimit: 100,
     baseCost: 20,
-    extraFilesCost: 1.5,
+    extraSubscriptionCost: 5,
   },
   PREMIUM: {
     employeeLimits: Infinity,
     fileUploadLimit: 1000,
-    baseCost: 50,
-    extraFilesCost: 1,
+    baseCost: 300,
+    extraSubscriptionCost: 0.5,
   },
 };

@@ -8,10 +8,12 @@ interface UserPayload {
   userId: string;
   email: string;
   role?: "ADMIN" | "USER";
+  companyId?: string;
 }
 
 export interface AuthRequest extends Request {
   user?: UserPayload;
+  extraEmployeeCost?: number;
 }
 
 export const authenticateJWT = (
