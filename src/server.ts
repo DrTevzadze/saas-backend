@@ -20,4 +20,6 @@ app.get("/", (req, res) => {
 });
 
 const PORT = 4000;
-app.listen(PORT, () => console.log(`Sever is running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`Sever is running on port ${PORT}`)
+);

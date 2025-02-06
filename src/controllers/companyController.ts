@@ -6,7 +6,6 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { subscriptionConfig } from "../config/subscription";
 import sendActivationEmail from "../services/emailService";
-import formatDate from "../utils/formatDate";
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -47,7 +46,6 @@ export const companySignup = async (req: AuthRequest, res: Response) => {
         country,
         industry,
         isActivated: false,
-        subscriptionStartDate: formatDate(new Date()),
         employees: {
           connect: {
             id: userId,
@@ -448,6 +446,7 @@ export const getCompanyDetails = async (req: AuthRequest, res: Response) => {
     res.json({
       companyName: user.company.name,
       plan: user.company.plan,
+      role: user.role,
     });
   } catch (err) {
     console.log("Get Company Details Error:", err);
