@@ -1,15 +1,11 @@
 import express from "express";
-import dotenv from "dotenv";
-import { PrismaClient } from "@prisma/client";
 import authRoutes from "./routes/auth";
 import protectedRoutes from "./routes/protected";
 import companyRoutes from "./routes/company";
 import filesRoutes from "./routes/files";
 import invoiceRoutes from "./routes/invoice";
 
-dotenv.config();
 const app = express();
-const prisma = new PrismaClient();
 
 app.use(express.json());
 
