@@ -34,3 +34,15 @@ In order to see Prisma Studio for database collection, write in the terminal:
 npx prisma studio
 ```
 
+# INPUT: Application Workflow
+
+1. **Registration:**  
+   The user first registers by filling out the registration form.
+
+2. **Login:**  
+   After registering, the user logs in to access the application.
+
+3. **Company Creation:**  
+   Once logged in, the user can create a company.
+   **Important:** In the registration form's body, make sure to enter a **valid email address**. You will receive an actual email to activate your company.  
+   **NOTE:** The activation email WILL land in your spam folder, so be sure to check there!
