@@ -34,7 +34,7 @@ In order to see Prisma Studio for database collection, write in the terminal:
 npx prisma studio
 ```
 
-# INPUT: Application Workflow
+# Application Workflow
 
 1. **Registration:**  
    The user first registers by filling out the registration form.
