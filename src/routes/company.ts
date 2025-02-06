@@ -17,11 +17,17 @@ import { updateInvoiceMiddleware } from "../middleware/invoice";
 const router = Router();
 
 router.get("/activate", activateCompany);
-router.get("/details", authenticateJWT, getCompanyDetails);
+router.get("/details", authenticateJWT, isAdmin, getCompanyDetails);
 router.get("/invite/verify", verifyInviteToken);
 
 router.post("/signup", authenticateJWT, updateInvoiceMiddleware, companySignup);
-router.post("/invite", authenticateJWT, isAdmin, updateInvoiceMiddleware, inviteEmployee);
+router.post(
+  "/invite",
+  authenticateJWT,
+  isAdmin,
+  updateInvoiceMiddleware,
+  inviteEmployee
+);
 router.post("/join", acceptInvite);
 router.post("/upgrade", authenticateJWT, isAdmin, upgradeSubscription);
 
