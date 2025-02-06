@@ -14,19 +14,20 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(uuid())
-  email       String       @unique
-  password    String?
-  role        Role         @default(USER)
-  companyId   String?
-  company     Company?     @relation(fields: [companyId], references: [id])
-  inviteToken String?      @unique
-  isActivated Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  File        File[]
-  FileAccess  FileAccess[]
-  Invoice     Invoice?     @relation(fields: [invoiceId], references: [id])
-  invoiceId   String?
+  id                    String       @id @default(uuid())
+  email                 String       @unique
+  password              String?
+  role                  Role         @default(USER)
+  companyId             String?
+  company               Company?     @relation(fields: [companyId], references: [id])
+  inviteToken           String?      @unique
+  isActivated           Boolean      @default(false)
+  createdAt             DateTime     @default(now())
+  File                  File[]
+  FileAccess            FileAccess[]
+  subscriptionStartDate DateTime     @default(now())
+  invoice               Invoice?     @relation(fields: [invoiceId], references: [id])
+  invoiceId             String?
 }
 
 enum Role {
