@@ -1,11 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import { subscriptionConfig } from "../config/subscription";
+import formatDate from "../utils/formatDate";
 
 const prisma = new PrismaClient();
 
-export const updateInvoice = async ( userId: string) => {
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+export const updateInvoice = async (userId: string) => {
+  const today = new Date();
 
   const admin = await prisma.user.findUnique({
     where: { id: userId },
@@ -20,17 +20,26 @@ export const updateInvoice = async ( userId: string) => {
 
   const company = await prisma.company.findUnique({
     where: { id: companyId },
-    include: { employees: true },
+    select: { plan: true, subscriptionStartDate: true },
   });
+
   if (!company) throw new Error("Company not found!");
+  if (!company.subscriptionStartDate)
+    throw new Error("Subscription start date not found!");
 
   const plan = company.plan;
   const { baseCost, extraSubscriptionCost, fileUploadLimit, employeeLimits } =
     subscriptionConfig[plan];
 
-  // Find invoice
+  const startDate = new Date(company.subscriptionStartDate);
+  const billingDay = startDate.getDate();
+  const billingMonth =
+    today.getMonth() + (today.getDate() >= billingDay ? 0 : -1);
+  const billingYear = today.getFullYear();
+
+  // Check if an invoice already exists for this billing cycle
   let invoice = await prisma.invoice.findFirst({
-    where: { companyId, month: currentMonth, year: currentYear },
+    where: { companyId, month: billingMonth + 1, year: billingYear },
   });
 
   const totalEmployees = await prisma.user.count({
@@ -40,33 +49,36 @@ export const updateInvoice = async ( userId: string) => {
   const extraUsers = Math.max(totalEmployees - employeeLimits, 0);
   const extraUserCost = extraUsers * extraSubscriptionCost;
 
-  // If there's no invoice, create one
+  // If no invoice exists, create a new one
   if (!invoice) {
     invoice = await prisma.invoice.create({
       data: {
         companyId,
-        month: currentMonth,
-        year: currentYear,
+        month: billingMonth + 1,
+        year: billingYear,
         baseCost: baseCost,
         totalEmployees,
         totalCost: baseCost + extraUserCost,
         extraCost: extraUserCost,
+        createdAt: formatDate(new Date()),
       },
     });
   }
 
-  // Count uploaded files this month
+  // Count uploaded files this billing month
   const uploadedFilesCount = await prisma.file.count({
     where: {
       uploadedById: userId,
-      createdAt: { gte: new Date(currentYear, currentMonth - 1, 1) }, // Calculates first day of the PREVIOUS month
+      createdAt: {
+        gte: formatDate(new Date(billingYear, billingMonth, billingDay)), // Start from the last billing date
+      },
     },
   });
 
   let extraFiles = Math.max(uploadedFilesCount - fileUploadLimit, 0);
   let extraFileCost = extraFiles * extraSubscriptionCost;
 
-  // Update invoice
+  // Update invoice with extra file costs
   await prisma.invoice.update({
     where: { id: invoice.id },
     data: {

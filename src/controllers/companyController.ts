@@ -5,14 +5,24 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { subscriptionConfig } from "../config/subscription";
+import sendActivationEmail from "../services/emailService";
+import formatDate from "../utils/formatDate";
 
 dotenv.config();
 const prisma = new PrismaClient();
 
 // Company Signup
-export const companySignup = async (req: Request, res: Response) => {
+export const companySignup = async (req: AuthRequest, res: Response) => {
   try {
     const { name, email, password, country, industry } = req.body;
+    const userId = req.user?.userId;
+
+    console.log("userid:", userId);
+
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized! Please log in." });
+      return;
+    }
 
     // Check if company already exists
     const existingCompany = await prisma.company.findUnique({
@@ -37,7 +47,19 @@ export const companySignup = async (req: Request, res: Response) => {
         country,
         industry,
         isActivated: false,
+        subscriptionStartDate: formatDate(new Date()),
+        employees: {
+          connect: {
+            id: userId,
+          },
+        },
       },
+    });
+
+    // Update employee role to "ADMIN"
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: "ADMIN" },
     });
 
     // Generate token
@@ -49,10 +71,13 @@ export const companySignup = async (req: Request, res: Response) => {
       }
     );
 
+    sendActivationEmail(email, activateToken);
+
     res
       .status(201)
       .json({ message: "Company created successfully:", activateToken });
   } catch (err) {
+    console.log("signup comapny", err);
     res.status(500).json({ message: "Something went wrong:", err });
   }
 };
@@ -61,6 +86,7 @@ export const companySignup = async (req: Request, res: Response) => {
 export const activateCompany = async (req: Request, res: Response) => {
   try {
     const { token } = req.query;
+    console.log("Token received from request:", req.query);
 
     if (!token) {
       res.status(400).json({ message: "Invalid token" });
@@ -70,7 +96,7 @@ export const activateCompany = async (req: Request, res: Response) => {
     const decoded = jwt.verify(
       token as string,
       process.env.JWT_SECRET as string
-    ) as { companyId: string };
+    ) as { companyId: string; adminId: string };
 
     if (!decoded.companyId) {
       res.status(400).json({ message: "Invalid or expired token" });
@@ -96,7 +122,14 @@ export const activateCompany = async (req: Request, res: Response) => {
     // Activate Company
     await prisma.company.update({
       where: { id: company.id },
-      data: { isActivated: true },
+      data: {
+        isActivated: true,
+      },
+    });
+
+    await prisma.user.updateMany({
+      where: { id: decoded.adminId },
+      data: { companyId: company.id },
     });
 
     res.json({ message: "Company activated! You can now log in." });
@@ -415,7 +448,6 @@ export const getCompanyDetails = async (req: AuthRequest, res: Response) => {
     res.json({
       companyName: user.company.name,
       plan: user.company.plan,
-      role: user.role,
     });
   } catch (err) {
     console.log("Get Company Details Error:", err);
