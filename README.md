@@ -14,12 +14,6 @@ npm install
 npm run dev
 ```
 
-If you're using Docker, simply run:
-
-```bash
-docker  run  -p  4000:4000  saas-backend
-```
-
 3. **Postman API**
 
 The application has a `saas-backend.postman_collection.json` file that you can **import** into Postman and see the collection of APIs for the reference.
