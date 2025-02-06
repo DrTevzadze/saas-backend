@@ -25,6 +25,8 @@ model User {
   createdAt   DateTime     @default(now())
   File        File[]
   FileAccess  FileAccess[]
+  Invoice     Invoice?     @relation(fields: [invoiceId], references: [id])
+  invoiceId   String?
 }
 
 enum Role {
@@ -77,15 +79,17 @@ model FileAccess {
 }
 
 model Invoice {
-  id         String   @id @default(uuid())
-  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId  String
-  month      Int
-  year       Int
-  totalFiles Int      @default(0)
-  baseCost   Float
-  extraFiles Int      @default(0)
-  extraCost  Float    @default(0)
-  totalCost  Float
-  createdAt  DateTime @default(now())
+  id             String   @id @default(uuid())
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId      String
+  month          Int
+  year           Int
+  totalFiles     Int      @default(0)
+  totalEmployees Int      @default(0)
+  baseCost       Float
+  extraFiles     Int      @default(0)
+  extraCost      Float    @default(0)
+  totalCost      Float
+  createdAt      DateTime @default(now())
+  User           User[]
 }

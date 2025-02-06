@@ -72,8 +72,6 @@ export const activateCompany = async (req: Request, res: Response) => {
       process.env.JWT_SECRET as string
     ) as { companyId: string };
 
-    console.log("Decoded Token:", decoded);
-
     if (!decoded.companyId) {
       res.status(400).json({ message: "Invalid or expired token" });
       return;
@@ -157,11 +155,18 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (currentEmployeeCount >= maxEmployees) {
+    if (plan === "FREE" && currentEmployeeCount >= maxEmployees) {
       res.status(400).json({
         message: `You have reached the maximum number of employees for your plan (${maxEmployees})`,
       });
       return;
+    }
+
+    let extraChargeMessage = null;
+
+    if (plan === "BASIC" && currentEmployeeCount >= maxEmployees) {
+      extraChargeMessage = `You have been charged with extra ${subscriptionConfig[plan].extraSubscriptionCost}$, because of BASIC subscription plan employee limit.`;
+      req.extraEmployeeCost = 5;
     }
 
     // Invite token
@@ -182,7 +187,10 @@ export const inviteEmployee = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.json({ message: "Employee invited successfully!" });
+    res.status(200).json({
+      message: "Employee has been invited successfully!",
+      ...(extraChargeMessage && { extraChargeMessage }),
+    });
   } catch (err) {
     console.log("Invite Employee Error:", err);
     res.status(500).json({ message: "Something went wrong:", err });
