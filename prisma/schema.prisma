@@ -25,7 +25,6 @@ model User {
   createdAt             DateTime     @default(now())
   File                  File[]
   FileAccess            FileAccess[]
-  subscriptionStartDate DateTime     @default(now())
   invoice               Invoice?     @relation(fields: [invoiceId], references: [id])
   invoiceId             String?
 }
@@ -44,6 +43,7 @@ model Company {
   industry    String
   isActivated Boolean          @default(false)
   plan        SubscriptionPlan @default(FREE)
+  subscriptionStartDate DateTime     @default(now())
   employees   User[]
   createdAt   DateTime         @default(now())
   Invoice     Invoice[]

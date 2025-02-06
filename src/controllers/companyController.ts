@@ -46,6 +46,7 @@ export const companySignup = async (req: AuthRequest, res: Response) => {
         country,
         industry,
         isActivated: false,
+        subscriptionStartDate: new Date(),
         employees: {
           connect: {
             id: userId,
