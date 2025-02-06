@@ -24,4 +24,12 @@ docker  run  -p  4000:4000  saas-backend
 
 The application has a `saas-backend.postman_collection.json` file that you can **import** into Postman and see the collection of APIs for the reference.
 
+4. **Postman API**
+
+In order to see Prisma Studio for database collection, write in the terminal:
+
+```bash
+npx prisma studio
+```
+
 ![alt text](image.png)
